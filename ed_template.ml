@@ -28,12 +28,33 @@ let rec strip l =
 
   | [] -> []
 
+let rec subst env l =
+  BatList.map (subst_node env) l
 
-let sanitize html =
+and subst_node env = function
+  | Hclean.Element ("span", ["class", Some var], children) ->
+      (try Hclean.Data (List.assoc var env)
+       with Not_found -> failwith ("Unbound template variable " ^ var))
+  | x -> x
+
+let parse html =
   if String.length html > 1_000_000 then
     (* avoid stack overflows from malicious input that may crash the server *)
-    invalid_arg "Editor.sanitize: input too long"
+    invalid_arg "Ed_template: input too long"
   else
-    let seq = Hclean.of_string html in
-    let seq = strip seq in
-    Hclean.to_string seq
+    Hclean.of_string html
+
+(*
+   Remove or rewrite unsupported markup from HTML snippet
+*)
+let sanitize html =
+  let seq = strip (parse html) in
+  Hclean.to_string seq
+
+(*
+   Sanitize and replace variables with text
+*)
+let instantiate env html =
+  let template = strip (parse html) in
+  let result = subst env template in
+  Hclean.to_string result

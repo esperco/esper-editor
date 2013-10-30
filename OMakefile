@@ -3,9 +3,11 @@
 OCAML_LIBS = $(OCAML_LIBS_editor)
 
 FILES[] =
+# self-contained HTML parser
   hclean
-  editor
-  sanitize_main
+# template management
+  ed_template
+  ed_sanitize_main
 
 hclean.ml: hclean.mll
 	ocamllex $<

@@ -455,7 +455,7 @@ and parse_string_literal1 buf = parse
       { Buffer.contents buf }
 
 and parse_string_literal2 buf = parse
-  | ( [^ '\'' '&']* as s) '\''
+  | ( [^ '\'' '&']* as s)
       { Buffer.add_string buf s;
         parse_string_literal2 buf lexbuf }
   | "&"
@@ -474,12 +474,13 @@ and parse_string_literal2 buf = parse
   let rec close_all pending acc =
     match pending with
     | [] -> List.rev acc
-    | (name, attrs) :: pending -> [Element (name, attrs, List.rev acc)]
+    | ((name, attrs), parent_acc) :: pending ->
+        close_all pending (Element (name, attrs, List.rev acc) :: parent_acc)
 
   let rec make_seq pending acc l =
     match l with
     | Open_element x :: l ->
-        List.rev_append acc (make_seq (x :: pending) [] l)
+        make_seq ((x, acc) :: pending) [] l
     | Close_element name :: l ->
         close_matching name pending acc l
     | Empty_element (name, attrs) :: l ->
@@ -494,14 +495,14 @@ and parse_string_literal2 buf = parse
     | [] ->
         (* drop closing tag with no matching opening tag *)
         make_seq [] acc l
-    | (op_name, attrs) :: pending ->
+    | ((op_name, attrs), parent_acc) :: pending ->
         if op_name = cl_name then
           let node = Element (op_name, attrs, List.rev acc) in
-          make_seq pending [node] l
+          make_seq pending (node :: parent_acc) l
         else
           (* continue auto-closing until matching element is found *)
           let node = Element (op_name, attrs, List.rev acc) in
-          close_matching cl_name pending [node] l
+          close_matching cl_name pending (node :: parent_acc) l
 
   let of_string s =
     let lexbuf = Lexing.from_string s in
@@ -532,4 +533,43 @@ and parse_string_literal2 buf = parse
 
   let rewrite s =
     to_string (of_string s)
+
+  let make_test (input, output) =
+    (input, (fun () -> rewrite input = output))
+
+  let tests =
+    List.map make_test [
+      "<p>",
+      "<p></p>";
+
+      "<a>X<b>",
+      "<a>X<b></b></a>";
+
+      "<a><b></a>",
+      "<a><b></b></a>";
+
+      "<a><b><c></a>",
+      "<a><b><c></c></b></a>";
+
+      "<div class='abc'>",
+      "<div class=\"abc\"></div>";
+
+      "<div class=\"abc\">",
+      "<div class=\"abc\"></div>";
+
+      "A<div class='abc'>def<a>J<b>K</a>X</div>Z",
+      "A<div class=\"abc\">def<a>J<b>K</b></a>X</div>Z";
+
+      "&eacute;",
+      "\xc3\xa9";
+
+      "<a href=\"/?x=0&amp;y=0\">x</a>",
+      "<a href=\"/?x=0&amp;y=0\">x</a>";
+
+      "hello, <!-- nothing -->world",
+      "hello, world";
+
+      "<>",
+      "&lt;&gt;";
+    ]
 }
