@@ -1,0 +1,20 @@
+# Sanitizer of HTML editor input
+
+OCAML_LIBS = $(OCAML_LIBS_editor)
+
+FILES[] =
+  hclean
+  editor
+
+hclean.ml: hclean.mll
+	ocamllex $<
+
+OCamlGeneratedFiles(hclean.ml)
+OCamlLibrary(editor, $(FILES))
+Meta(editor)
+
+.DEFAULT: META editor.cma editor.cmxa
+
+.PHONY: clean
+clean:
+  rm -f *.o *.a *.cm* *~ *.annot *.run *.opt META hclean.ml
