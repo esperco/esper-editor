@@ -5,6 +5,7 @@ OCAML_LIBS = $(OCAML_LIBS_editor)
 FILES[] =
   hclean
   editor
+  sanitize_main
 
 hclean.ml: hclean.mll
 	ocamllex $<

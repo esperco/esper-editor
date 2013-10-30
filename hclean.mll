@@ -373,14 +373,14 @@ let ws = [ ' ' '\t' '\r' '\n' ]
 let unquoted_attribute = [^ '"' '\'' '>' ' ' '\t' '\n' '\r' ]+
 
 rule parse_nodes acc = parse
-  | "<!--" [^'>']* ">"
+  | "<!--" ([^'-'] | '-'[^'-'])* "-->"
       { (* ignore comment *)
         parse_nodes acc lexbuf }
   | "<!" [^'>']* ">"
       { (* ignore doctype *)
         parse_nodes acc lexbuf }
-  | "<?" [^'>']* ">"
-      { (* ignore xml cruft *)
+  | "<?" [^'>']* "?>"
+      { (* ignore xml processing instruction *)
         parse_nodes acc lexbuf }
   | "<" (name as elt_name)
       { let closed, l = parse_attributes [] lexbuf in
