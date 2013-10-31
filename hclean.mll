@@ -534,6 +534,23 @@ and parse_string_literal2 buf = parse
   let rewrite s =
     to_string (of_string s)
 
+  (* Utilities *)
+  let is_data = function Data _ -> true | _ -> false
+  let is_element = function Element _ -> true | _ -> false
+  let attr name attrs = try Some (List.assoc name attrs) with Not_found -> None
+  let has_attr name attrs = List.exists (fun (k, v) -> k = name) attrs
+  let has_attr_val name attrs =
+    List.exists (fun (k, v) -> k = name && v <> None) attrs
+
+  let split_re = Str.regexp "[ \t\r\n]+"
+  let split s = Str.split split_re s
+  let classes attrs =
+    match attr "class" attrs with
+    | Some (Some s) -> split s
+    | _ -> []
+  let has_class cl attrs =
+    List.mem cl (classes attrs)
+
   let make_test (input, output) =
     (input, (fun () -> rewrite input = output))
 
