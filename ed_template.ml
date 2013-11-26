@@ -83,7 +83,7 @@ let parse html =
 
 let sanitize html =
   let seq = strip (parse html) in
-  Hclean.to_string seq
+  Hclean.to_string ~noclose:["br";"img"] seq
 
 let instantiate env html =
   let template = strip (parse html) in
@@ -124,7 +124,7 @@ ______</p>
 ____<p>
 ______Naturally.<br>
 ______Right.
-__</br></p></p>
+__</p></p>
 
 "
 

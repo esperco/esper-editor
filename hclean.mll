@@ -508,16 +508,21 @@ and parse_string_literal2 buf = parse
     let lexbuf = Lexing.from_string s in
     make_seq [] [] (parse_nodes [] lexbuf)
 
-  let to_string l =
+  let to_string ?(noclose = []) l =
+    let noclose_tbl = Hashtbl.create (2 * List.length noclose) in
+    List.iter
+      (fun k -> Hashtbl.replace noclose_tbl (String.lowercase k) ())
+      noclose;
     let rec print_seq buf l =
       List.iter (function
         | Data s ->
             Buffer.add_string buf (encode_data ~quot:false s)
         | Element (name, attrs, children) ->
-            bprintf buf "<%s%a>%a</%s>"
+            bprintf buf "<%s%a>%a"
               name print_attributes attrs
-              print_seq children
-              name
+              print_seq children;
+            if not (Hashtbl.mem noclose_tbl name) then
+              bprintf buf "</%s>" name
       ) l
     and print_attributes buf l =
       List.iter (fun x -> bprintf buf " %a" print_attribute x) l
@@ -531,8 +536,8 @@ and parse_string_literal2 buf = parse
     print_seq buf l;
     Buffer.contents buf
 
-  let rewrite s =
-    to_string (of_string s)
+  let rewrite ?noclose s =
+    to_string ?noclose (of_string s)
 
   (* Utilities *)
   let is_data = function Data _ -> true | _ -> false
@@ -552,7 +557,7 @@ and parse_string_literal2 buf = parse
     List.mem cl (classes attrs)
 
   let make_test (input, output) =
-    (input, (fun () -> rewrite input = output))
+    (input, (fun () -> rewrite ~noclose:["br"; "img"] input = output))
 
   let tests =
     List.map make_test [
@@ -588,5 +593,8 @@ and parse_string_literal2 buf = parse
 
       "<>",
       "&lt;&gt;";
+
+      "<p>a<br>b<img/></p>",
+      "<p>a<br>b<img></p>";
     ]
 }
