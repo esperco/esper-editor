@@ -5,6 +5,7 @@ OCAML_LIBS = $(OCAML_LIBS_editor)
 FILES[] =
 # self-contained HTML parser
   hclean
+  ed_text
 # template management
   ed_template
   ed_sanitize_main
