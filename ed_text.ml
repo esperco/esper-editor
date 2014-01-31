@@ -5,6 +5,7 @@ type element_class =
   | Break_before
   | Break_after
   | Preformatted
+  | Quote
   | Paragraph
   | List
   | Numbered_list
@@ -17,6 +18,7 @@ let classify_element = function
   | "javascript" | "style" | "head" -> Hidden
   | "br" -> Break_before
   | "pre" -> Preformatted
+  | "blockquote" -> Quote
   | "p" | "div" | "table" -> Paragraph
   | "ul" -> List
   | "ol" -> Numbered_list
@@ -32,23 +34,50 @@ let compact_whitespace =
     if s = " " then ""
     else s
 
+let space_rex = Pcre.regexp "^[ \t\r\n]+"
+let remove_leading_space s =
+  try
+    match Pcre.extract ~rex:space_rex s with
+    | [| prefix |] ->
+        let prelen = String.length prefix in
+        let len = String.length s in
+        assert (prelen <= len);
+        String.sub s prelen (len - prelen)
+    | _ -> assert false
+  with Not_found -> s
+
 let text_of_html l =
 
+  let starts_line = ref true in
   let prev_newlines = ref 2 in
 
-  let nl buf newlines =
+  let nl buf indent newlines =
     let n = newlines - !prev_newlines in
     if n > 0 then (
-      Buffer.add_string buf (String.make n '\n');
+      for i = 2 to n do
+        Buffer.add_string buf ("\n" ^ indent);
+      done;
+      Buffer.add_string buf "\n";
       prev_newlines := n;
+      starts_line := true;
     )
+  in
+
+  let remove_leading_space_if_needed s0 =
+    if !starts_line then
+      let s = remove_leading_space s0 in
+      if s <> "" then
+        starts_line := false;
+      s
+    else
+      s0
   in
 
   let text buf indent s =
     if s <> "" then (
       if !prev_newlines > 0 then
-        Buffer.add_string buf (String.make indent ' ');
-      Buffer.add_string buf s;
+        Buffer.add_string buf indent;
+      Buffer.add_string buf (remove_leading_space_if_needed s);
       prev_newlines := 0;
     )
   in
@@ -67,24 +96,28 @@ let text_of_html l =
         match classify_element name with
         | Hidden -> ()
         | Break_before ->
-            nl buf 1;
+            nl buf indent 1;
             print buf pre indent children
         | Break_after ->
             print buf pre indent children;
-            nl buf 1
+            nl buf indent 1
         | Preformatted ->
-            nl buf 2;
+            nl buf indent 2;
             print buf true indent children;
-            nl buf 2
+            nl buf indent 2
+        | Quote ->
+            nl buf indent 1;
+            print buf pre ("> " ^ indent) children;
+            nl buf indent 1
         | Paragraph ->
-            nl buf 2;
+            nl buf indent 2;
             print buf pre indent children;
-            nl buf 2
+            nl buf indent 2
         | List
         | Numbered_list ->
-            nl buf 2;
-            print buf pre (indent + 2) children;
-            nl buf 2
+            nl buf indent 2;
+            print buf pre ("  " ^ indent) children;
+            nl buf indent 2
         | Space_before ->
             text buf indent " ";
             print buf pre indent children
@@ -92,14 +125,14 @@ let text_of_html l =
             print buf pre indent children;
             text buf indent " "
         | List_item ->
-            nl buf 1;
+            nl buf indent 1;
             text buf indent "* ";
-            print buf pre (indent + 2) children
+            print buf pre ("  " ^ indent) children
         | Contiguous ->
             print buf pre indent children
   in
   let buf = Buffer.create 1000 in
-  print buf false 0 l;
+  print buf false "" l;
   Buffer.contents buf
 
 let of_html s =
@@ -148,6 +181,13 @@ Code!     Code!
         </a>
       </li>
     </ul>
+    <blockquote>
+      <p>He said this.<br>And something else on another line.</p>
+      <blockquote>
+        <p>I originally
+           said that.</p>
+      </blockquote>
+    </blockquote>
   </body>
 </html>
 "
