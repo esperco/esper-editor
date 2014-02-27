@@ -407,8 +407,10 @@ rule parse_nodes acc = parse
       { fuse_cdata (List.rev acc) }
 
 and parse_entity = parse
-  | "#x" (hexdigit hexdigit as s) ";"
+  | "#x" (hexdigit+ as s) ";"
       { string_of_unicode (int_of_string ("0x" ^ s)) }
+  | "#" (digit+ as s) ";"
+      { string_of_unicode (int_of_string s) }
   | (name as name) ";"
       { string_of_entity_name name }
   | ""
