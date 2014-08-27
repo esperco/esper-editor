@@ -11,7 +11,7 @@ FILES[] =
   ed_sanitize_main
 
 hclean.ml: hclean.mll
-	ocamllex $<
+	ocamllex $< >/dev/null
 
 OCamlGeneratedFiles(hclean.ml)
 OCamlLibrary(editor, $(FILES))
