@@ -126,7 +126,7 @@ let text_of_html l =
             text buf indent " "
         | List_item ->
             nl buf indent 1;
-            text buf indent "* ";
+            text buf indent "• ";
             print buf pre ("  " ^ indent) children
         | Contiguous ->
             print buf pre indent children
