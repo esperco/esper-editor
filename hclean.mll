@@ -384,12 +384,12 @@ rule parse_nodes acc = parse
         parse_nodes acc lexbuf }
   | "<" (name as elt_name)
       { let closed, l = parse_attributes [] lexbuf in
-        let elt_name = String.lowercase elt_name in
+        let elt_name = String.lowercase_ascii elt_name in
         let x =
           if closed then
             Empty_element (elt_name, l)
           else
-            Open_element (String.lowercase elt_name, l)
+            Open_element (String.lowercase_ascii elt_name, l)
         in
         parse_nodes (x :: acc) lexbuf }
   | "</" (name as elt_name) ws* ">"
@@ -426,18 +426,18 @@ and parse_attributes acc = parse
       { parse_attributes acc lexbuf }
 
   | (name as k)
-      { parse_attributes ((String.lowercase k, None) :: acc) lexbuf }
+      { parse_attributes ((String.lowercase_ascii k, None) :: acc) lexbuf }
 
   | (name as k) ws* "=" (unquoted_attribute as v)
-      { parse_attributes ((String.lowercase k, Some v) :: acc) lexbuf }
+      { parse_attributes ((String.lowercase_ascii k, Some v) :: acc) lexbuf }
 
   | (name as k) ws* "=" ws* '"'
       { let v = parse_string_literal1 (Buffer.create 100) lexbuf in
-        parse_attributes ((String.lowercase k, Some v) :: acc) lexbuf }
+        parse_attributes ((String.lowercase_ascii k, Some v) :: acc) lexbuf }
 
   | (name as k) ws* "=" ws* "'"
       { let v = parse_string_literal2 (Buffer.create 100) lexbuf in
-        parse_attributes ((String.lowercase k, Some v) :: acc) lexbuf }
+        parse_attributes ((String.lowercase_ascii k, Some v) :: acc) lexbuf }
 
   | _
       { (* ignore junk *)
@@ -513,7 +513,7 @@ and parse_string_literal2 buf = parse
   let to_string ?(noclose = []) l =
     let noclose_tbl = Hashtbl.create (2 * List.length noclose) in
     List.iter
-      (fun k -> Hashtbl.replace noclose_tbl (String.lowercase k) ())
+      (fun k -> Hashtbl.replace noclose_tbl (String.lowercase_ascii k) ())
       noclose;
     let rec print_seq buf l =
       List.iter (function
