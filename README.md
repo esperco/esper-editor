@@ -8,4 +8,5 @@ It won't build as is but most of the code was used in production.
 Description
 -----------
 
-Sorry, no description yet :cry:
+OCaml HTML sanitizer. Comes with a system for template substitution but we 
+long forgot what it does exactly.
